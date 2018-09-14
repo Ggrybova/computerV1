@@ -13,18 +13,41 @@
 %% API
 %%====================================================================
 -export([
+    main/1,
     solve_equation/1,
     get_equation/1
 ]).
 
-solve_equation(#{}) ->
-    ok;
+main(Arg) ->
+    Map = get_equation(Arg),
+    case solve_equation(Map) of
+        Sols when is_list(Sols) ->
+            io:format("The solution is:~n"),
+            [io:format("~p~n", [Sol]) || Sol <- Sols];
+        Sols -> io:format(Sols)
+    end.
 
 solve_equation(#{degree := Degree}) when Degree > 2 ->
-    io:format("The polynomial degree is stricly greater than 2, I can't solve.");
+    io:format("Degree: ~p~n", [Degree]),
+    io:format("The polynomial degree is stricly greater than 2, I can't solve.~n");
 
-solve_equation(Map) when is_map(Map) ->
-    io:format("Map: ~p~n", [Map]);
+solve_equation(#{degree := Degree, a := A, b := B, c := C} = Map) ->
+    D = B*B-4*A*C,
+    Map2 = Map#{d => D},
+    io:format("Degree: ~p~n", [Degree]),
+    io:format("Map: ~p~n", [Map2]),
+    case D of
+        D when D < 0 -> "No solution.";
+        D when D == 0 ->
+            [-1*B/2/A];
+        D when D > 0 andalso Degree == 1 ->
+            [(-1*C)/B];
+        D when D > 0 andalso Degree == 1 ->
+            [(-1*B+sq(D))/A];
+        D when D > 0 andalso Degree == 2 ->
+            [(-1*B+sq(D))/A, (-1*B-sq(D))/A];
+        D -> "What a fuck&?"
+    end;
 
 solve_equation(_) ->
     io:format("Fuck you!").
@@ -43,6 +66,7 @@ get_equation(Arg) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
+
 
 split(Arg, Sep, Acc) ->
     case binary:split(Arg, Sep) of
@@ -110,3 +134,17 @@ print_reduce(List) ->
             Acc + 1
         end, 0, List),
     io:format(" = 0~n").
+
+sq(0) -> 0;
+
+sq(1) -> 1;
+
+sq(X) when X >= 0 ->
+    R = X div 2,
+    sq(X div R, R, X).
+
+sq(Q,R,X) when Q < R ->
+    R1 = (R+Q) div 2,
+    sq(X div R1, R1, X);
+
+sq(_, R, _) -> R.

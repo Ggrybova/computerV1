@@ -1,9 +1,7 @@
 #! /usr/bin/env escript
 
-
 main([Arg]) ->
-    Map = computer:get_equation(list_to_binary(Arg)),
-    computer:solve_equation(Map);
+    computer:main(list_to_binary(Arg));
 
 main(_) ->
     io:format("Fuck you2!").
