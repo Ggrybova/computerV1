@@ -13,14 +13,9 @@
 %% API
 %%====================================================================
 -export([
-    main/1,
     solve_equation/1,
     get_equation/1
 ]).
-
-main(Arg) ->
-    Map = get_equation(Arg),
-    solve_equation(Map).
 
 solve_equation(#{}) ->
     ok;
@@ -70,7 +65,8 @@ convert_to_float(Bin) ->
                 binary_to_integer(Bin)
             catch
                 _:_ ->
-                    exit(format_error, Bin)
+                    io:format("Format error: ~p", [Bin]),
+                    halt()
             end
     end.
 
