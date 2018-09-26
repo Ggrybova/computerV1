@@ -95,20 +95,25 @@ convert_to_float(Bin) ->
     end.
 
 fill_map([], [], Acc) ->
+    io:format(": Acc: ~p~n", [Acc]),
     print_reduce(lists:reverse(Acc)),
-    case length(Acc) of
+    Len = length(Acc),
+    Map = case  Len of
         1 ->
             [C] = Acc,
-            #{a => 0, b => 0, c => C, degree => 0};
+            #{a => 0, b => 0, c => C};
         2 ->
             [B, C] = Acc,
-            #{a => 0, b => B, c => C, degree => 1};
+            #{a => 0, b => B, c => C};
         3 ->
             [A, B, C] = Acc,
-            #{a => A, b => B, c => C, degree => 2};
+            #{a => A, b => B, c => C};
         _ ->
-            #{degree => 3}
-end;
+            #{}
+    end,
+    Res = maps:put(degree, Len - 1, Map),
+    io:format(": Map: ~p~n", [Res]),
+    Res;
 
 fill_map([], [H2 | T2], Acc) ->
     fill_map([], T2, [ -1*H2 | Acc]);
@@ -124,11 +129,12 @@ print_reduce(List) ->
     lists:foldl(
         fun(Coef, Acc) ->
                 case Acc of
-                    0 when Coef >= 0 -> io:format("~p", [Coef]);
-                    0 -> io:format("- ~p ", [Coef * -1]);
-                    1 when Coef >= 0 -> io:format(" + ~p * X", [Coef]);
-                    1 -> io:format(" - ~p * X", [Coef * -1]);
-                    _ when Coef >= 0 -> io:format(" + ~p * X^~p", [Coef, Acc]);
+                    _ when Coef == 0 -> io:format("");
+                    0 when Coef > 0 -> io:format("~p", [Coef]);
+                    0 when Coef < 0 -> io:format("- ~p ", [Coef * -1]);
+%%                    1 when Coef > 0 -> io:format(" + ~p * X", [Coef]);
+%%                    1 when Coef < 0 -> io:format(" - ~p * X", [Coef * -1]);
+                    _ when Coef > 0 -> io:format(" + ~p * X^~p", [Coef, Acc]);
                     _  -> io:format(" - ~p * X^~p", [Coef * -1, Acc])
                 end,
             Acc + 1
