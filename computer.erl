@@ -27,15 +27,21 @@ main(Arg) ->
         Sols -> io:format(Sols)
     end.
 
+solve_equation(#{degree := Degree, c := C}) when Degree == 0 andalso C == 0 ->
+    io:format("The solution: all the real numbers.~n");
+
+solve_equation(#{degree := Degree, c := C}) when Degree == 0 andalso C =/= 0 ->
+    io:format("The solution: no solutions.~n");
+
 solve_equation(#{degree := Degree}) when Degree > 2 ->
-    io:format("Degree: ~p~n", [Degree]),
     io:format("The polynomial degree is stricly greater than 2, I can't solve.~n");
 
 solve_equation(#{degree := Degree, a := A, b := B, c := C} = Map) ->
     D = B*B-4*A*C,
     Map2 = Map#{d => D},
-    io:format("Degree: ~p~n", [Degree]),
-    io:format("Map: ~p~n", [Map2]),
+    io:format("Begin to solve.~n"),
+    io:format("STEP 1. Coefficients: A = ~p, B = ~p, C = ~p~n", [maps:get(a, Map2), maps:get(b, Map2), maps:get(c, Map2)]),
+    io:format("STEP 2. Discriminant : D = ~p~n", [maps:get(d, Map2)]),
     case D of
         D when D < 0 -> "No solution.";
         D when D == 0 ->
@@ -95,12 +101,16 @@ convert_to_float(Bin) ->
     end.
 
 fill_map([], [], Acc) ->
-    io:format(": Acc: ~p~n", [Acc]),
     print_reduce(lists:reverse(Acc)),
-    Len = length(Acc),
+    Acc2 = lists:dropwhile(
+        fun(0) -> true;
+            (Elem) -> false
+        end, Acc),
+    Len = length(Acc2),
+    io:format("Degree: ~p~n", [Len - 1]),
     Map = case  Len of
         1 ->
-            [C] = Acc,
+            C = lists:last(Acc),
             #{a => 0, b => 0, c => C};
         2 ->
             [B, C] = Acc,
@@ -111,9 +121,7 @@ fill_map([], [], Acc) ->
         _ ->
             #{}
     end,
-    Res = maps:put(degree, Len - 1, Map),
-    io:format(": Map: ~p~n", [Res]),
-    Res;
+    maps:put(degree, Len - 1, Map);
 
 fill_map([], [H2 | T2], Acc) ->
     fill_map([], T2, [ -1*H2 | Acc]);
@@ -132,8 +140,6 @@ print_reduce(List) ->
                     _ when Coef == 0 -> io:format("");
                     0 when Coef > 0 -> io:format("~p", [Coef]);
                     0 when Coef < 0 -> io:format("- ~p ", [Coef * -1]);
-%%                    1 when Coef > 0 -> io:format(" + ~p * X", [Coef]);
-%%                    1 when Coef < 0 -> io:format(" - ~p * X", [Coef * -1]);
                     _ when Coef > 0 -> io:format(" + ~p * X^~p", [Coef, Acc]);
                     _  -> io:format(" - ~p * X^~p", [Coef * -1, Acc])
                 end,
