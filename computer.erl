@@ -13,50 +13,19 @@
 %% API
 %%====================================================================
 -export([
-    main/1,
-    solve_equation/1,
-    get_equation/1
+    main/1
 ]).
 
 main(Arg) ->
     Map = get_equation(Arg),
-    case solve_equation(Map) of
-        Sols when is_list(Sols) ->
-            io:format("The solution is:~n"),
-            [io:format("~p~n", [Sol]) || Sol <- Sols];
-        Sols -> io:format(Sols)
-    end.
+    io:format("Begin to solve:~n"),
+    io:format("STEP 1. Coefficients:    A = ~p, B = ~p, C = ~p~n",
+        [maps:get(a, Map), maps:get(b, Map), maps:get(c, Map)]),
+    solve_equation(Map).
 
-solve_equation(#{degree := Degree, c := C}) when Degree == 0 andalso C == 0 ->
-    io:format("The solution: all the real numbers.~n");
-
-solve_equation(#{degree := Degree, c := C}) when Degree == 0 andalso C =/= 0 ->
-    io:format("The solution: no solutions.~n");
-
-solve_equation(#{degree := Degree}) when Degree > 2 ->
-    io:format("The polynomial degree is stricly greater than 2, I can't solve.~n");
-
-solve_equation(#{degree := Degree, a := A, b := B, c := C} = Map) ->
-    D = B*B-4*A*C,
-    Map2 = Map#{d => D},
-    io:format("Begin to solve.~n"),
-    io:format("STEP 1. Coefficients: A = ~p, B = ~p, C = ~p~n", [maps:get(a, Map2), maps:get(b, Map2), maps:get(c, Map2)]),
-    io:format("STEP 2. Discriminant : D = ~p~n", [maps:get(d, Map2)]),
-    case D of
-        D when D < 0 -> "No solution.";
-        D when D == 0 ->
-            [-1*B/2/A];
-        D when D > 0 andalso Degree == 1 ->
-            [(-1*C)/B];
-        D when D > 0 andalso Degree == 1 ->
-            [(-1*B+sq(D))/A];
-        D when D > 0 andalso Degree == 2 ->
-            [(-1*B+sq(D))/A, (-1*B-sq(D))/A];
-        D -> "What a fuck&?"
-    end;
-
-solve_equation(_) ->
-    io:format("Fuck you!").
+%%====================================================================
+%% Internal functions
+%%====================================================================
 
 get_equation(Arg) ->
     Arg1 = binary:replace(Arg, [<<" ">>], <<"">>, [global]),
@@ -69,10 +38,96 @@ get_equation(Arg) ->
             #{}
     end.
 
-%%====================================================================
-%% Internal functions
-%%====================================================================
+solve_equation(#{degree := -1}) ->
+    io:format("STEP 2. Solutions:       all the real numbers~n");
+solve_equation(#{degree := 0, c := 0}) ->
+    io:format("STEP 2. Solutions:       all the real numbers~n");
+solve_equation(#{degree := 0}) ->
+    io:format("STEP 2. The solution:    no solutions~n");
+solve_equation(#{degree := 1} = Map) ->
+    io:format("STEP 2. The solution:    - C / B = ~p~n", [maps:get(c, Map) * -1 / maps:get(b, Map)]);
+solve_equation(#{degree := 2, b := 0, c := 0}) -> io:format("STEP 2. The solution:    0~n");
+solve_equation(#{degree := 2, a := A, b := B, c := C} = Map) ->
+    D = B*B-4*A*C,
+    Map2 = Map#{d => D},
+    io:format("STEP 2. Discriminant:    D = ~p~nSTEP 3. ", [maps:get(d, Map2)]),
+    case D of
+        D when D < 0 -> complex_solve(A, B, D);
+        D when D == 0 -> io:format("The solution:   - B / 2A = ~p~n", [-1*B/2/A]);
+        D when D > 0 -> io:format("Solutions:       (-B - ~tsD) / 2A = ~p,
+                         (-B + ~tsD) / 2A = ~p~n",
+            ["√", (-1*B-my_sq(D))/A/2, "√", (-1*B+my_sq(D))/A/2]);
+        D ->  io:format("What a fuck?")
+    end;
+solve_equation(_) ->
+    io:format("The polynomial degree is stricly greater than 2, I can't solve.~n").
 
+complex_solve(A, B, D) ->
+    SqD = my_sq(D * -1),
+    Im = SqD/2/A,
+    case -1*B/2/A of
+        Re when Re == 0 orelse Re == 0.0 ->
+            io:format("STEP 3. Solutions:   -~pi,   ~pi~n", [Im, Im]);
+        Re ->
+            io:format("STEP 3. Solutions:   ~p - ~pi,    ~p + ~pi~n", [Re, Im, Re, Im])
+    end.
+
+fill_map([], [], Acc) ->
+    Acc2 = lists:dropwhile(
+        fun(0) -> true;
+           (0.0) -> true;
+           (_) -> false
+        end, Acc),
+    case length(Acc2) of
+        0 ->
+            print_reduce(lists:reverse(Acc2)),
+            io:format("Degree:          0~n"),
+            #{a => 0, b => 0, c => 0, degree => -1};
+        Len ->
+            print_reduce(lists:reverse(Acc)),
+            io:format("Degree:          ~p~n", [Len - 1]),
+            Map = case  Len of
+                      1 ->
+                          [C] = Acc2,
+                          #{a => 0, b => 0, c => C};
+                      2 ->
+                          [B, C] = Acc2,
+                          #{a => 0, b => B, c => C};
+                      3 ->
+                          [A, B, C] = Acc,
+                          #{a => A, b => B, c => C};
+                      _ ->
+                          #{}
+                  end,
+            maps:put(degree, Len - 1, Map)
+    end;
+fill_map([], [H2 | T2], Acc) ->
+    fill_map([], T2, [ -1*H2 | Acc]);
+fill_map([H1 | T1], [], Acc) ->
+    fill_map(T1, [], [H1 | Acc]);
+fill_map([H1 | T1], [H2 | T2], Acc) ->
+    fill_map(T1, T2, [H1 - H2 | Acc]).
+
+print_reduce([]) ->
+    io:format("Reduced form:    0 = 0~n");
+print_reduce(List) ->
+    io:format("Reduced form:    "),
+    lists:foldl(
+        fun(Coef, Acc) ->
+                case Acc of
+                    _ when Coef == 0 -> io:format("");
+                    0 when Coef > 0 -> io:format("~p", [Coef]);
+                    0 when Coef < 0 -> io:format("- ~p ", [Coef * -1]);
+                    _ when Coef > 0 -> io:format(" + ~p * X^~p", [Coef, Acc]);
+                    _  -> io:format(" - ~p * X^~p", [Coef * -1, Acc])
+                end,
+            Acc + 1
+        end, 0, List),
+    io:format(" = 0~n").
+
+%%====================================================================
+%% My library
+%%====================================================================
 
 split(Arg, Sep, Acc) ->
     case binary:split(Arg, Sep) of
@@ -100,63 +155,17 @@ convert_to_float(Bin) ->
             end
     end.
 
-fill_map([], [], Acc) ->
-    print_reduce(lists:reverse(Acc)),
-    Acc2 = lists:dropwhile(
-        fun(0) -> true;
-            (Elem) -> false
-        end, Acc),
-    Len = length(Acc2),
-    io:format("Degree: ~p~n", [Len - 1]),
-    Map = case  Len of
-        1 ->
-            C = lists:last(Acc),
-            #{a => 0, b => 0, c => C};
-        2 ->
-            [B, C] = Acc,
-            #{a => 0, b => B, c => C};
-        3 ->
-            [A, B, C] = Acc,
-            #{a => A, b => B, c => C};
-        _ ->
-            #{}
-    end,
-    maps:put(degree, Len - 1, Map);
-
-fill_map([], [H2 | T2], Acc) ->
-    fill_map([], T2, [ -1*H2 | Acc]);
-
-fill_map([H1 | T1], [], Acc) ->
-    fill_map(T1, [], [H1 | Acc]);
-
-fill_map([H1 | T1], [H2 | T2], Acc) ->
-    fill_map(T1, T2, [H1 - H2 | Acc]).
-
-print_reduce(List) ->
-    io:format("Reduced form: "),
-    lists:foldl(
-        fun(Coef, Acc) ->
-                case Acc of
-                    _ when Coef == 0 -> io:format("");
-                    0 when Coef > 0 -> io:format("~p", [Coef]);
-                    0 when Coef < 0 -> io:format("- ~p ", [Coef * -1]);
-                    _ when Coef > 0 -> io:format(" + ~p * X^~p", [Coef, Acc]);
-                    _  -> io:format(" - ~p * X^~p", [Coef * -1, Acc])
-                end,
-            Acc + 1
-        end, 0, List),
-    io:format(" = 0~n").
-
-sq(0) -> 0;
-
-sq(1) -> 1;
-
-sq(X) when X >= 0 ->
-    R = X div 2,
-    sq(X div R, R, X).
-
-sq(Q,R,X) when Q < R ->
-    R1 = (R+Q) div 2,
-    sq(X div R1, R1, X);
-
-sq(_, R, _) -> R.
+my_sq(0) -> 0;
+my_sq(1) -> 1;
+my_sq(D) ->
+    my_sq(D, D/2).
+my_sq(D, A) ->
+    A2 = 0.5*(A + D/A),
+    Sub = A2 - A,
+    Sub2 =
+        if Sub < 0 -> Sub * -1;
+            true -> Sub
+        end,
+    if Sub2 < 0.000001 -> A2;
+        true -> my_sq(D, A2)
+    end.
