@@ -18,10 +18,16 @@
 
 main(Arg) ->
     Map = get_equation(Arg),
-    io:format("Begin to solve:~n"),
-    io:format("STEP 1. Coefficients:    A = ~p, B = ~p, C = ~p~n",
-        [maps:get(a, Map), maps:get(b, Map), maps:get(c, Map)]),
-    solve_equation(Map).
+    Degree = maps:get(degree, Map),
+    if
+        Degree > 2 ->
+            io:format("The polynomial degree is stricly greater than 2, I can't solve.~n");
+        true ->
+            io:format("Begin to solve:~n"),
+            io:format("STEP 1. Coefficients:    A = ~p, B = ~p, C = ~p~n",
+                [maps:get(a, Map), maps:get(b, Map), maps:get(c, Map)]),
+            solve_equation(Map)
+    end.
 
 %%====================================================================
 %% Internal functions
@@ -60,7 +66,7 @@ solve_equation(#{degree := 2, a := A, b := B, c := C} = Map) ->
         D ->  io:format("What a fuck?")
     end;
 solve_equation(_) ->
-    io:format("The polynomial degree is stricly greater than 2, I can't solve.~n").
+    io:format("Please, enter valide polinomial.~n").
 
 complex_solve(A, B, D) ->
     SqD = my_sq(D * -1),
@@ -73,14 +79,19 @@ complex_solve(A, B, D) ->
     end.
 
 fill_map([], [], Acc) ->
-    Acc2 = lists:dropwhile(
+    Acc1 = lists:reverse(lists:dropwhile(
         fun(0) -> true;
            (0.0) -> true;
            (_) -> false
-        end, Acc),
+        end, Acc)),
+    Acc2 = lists:dropwhile(
+        fun(0) -> true;
+            (0.0) -> true;
+            (_) -> false
+        end, Acc1),
     case length(Acc2) of
         0 ->
-            print_reduce(lists:reverse(Acc2)),
+            print_reduce(Acc2),
             io:format("Degree:          0~n"),
             #{a => 0, b => 0, c => 0, degree => -1};
         Len ->
@@ -91,10 +102,10 @@ fill_map([], [], Acc) ->
                           [C] = Acc2,
                           #{a => 0, b => 0, c => C};
                       2 ->
-                          [B, C] = Acc2,
+                          [C, B] = Acc2,
                           #{a => 0, b => B, c => C};
                       3 ->
-                          [A, B, C] = Acc,
+                          [C, B, A] = Acc2,
                           #{a => A, b => B, c => C};
                       _ ->
                           #{}
@@ -118,6 +129,8 @@ print_reduce(List) ->
                     _ when Coef == 0 -> io:format("");
                     0 when Coef > 0 -> io:format("~p", [Coef]);
                     0 when Coef < 0 -> io:format("- ~p ", [Coef * -1]);
+                    1  when Coef > 0 -> io:format(" + ~p * X", [Coef]);
+                    1  -> io:format(" - ~p * X", [Coef * -1]);
                     _ when Coef > 0 -> io:format(" + ~p * X^~p", [Coef, Acc]);
                     _  -> io:format(" - ~p * X^~p", [Coef * -1, Acc])
                 end,

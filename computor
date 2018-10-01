@@ -4,4 +4,4 @@ main([Arg]) ->
     computer:main(list_to_binary(Arg));
 
 main(_) ->
-    io:format("Fuck you2!").
+    io:format("usage:   .\/computor \"the equation\"~n").
