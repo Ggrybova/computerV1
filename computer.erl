@@ -17,6 +17,7 @@
 ]).
 
 main(Arg) ->
+%%    io:format("!!!!~n"),
     Map = get_equation(Arg),
     Degree = maps:get(degree, Map),
     if
@@ -60,9 +61,9 @@ solve_equation(#{degree := 2, a := A, b := B, c := C} = Map) ->
     case D of
         D when D < 0 -> complex_solve(A, B, D);
         D when D == 0 -> io:format("The solution:   - B / 2A = ~p~n", [-1*B/2/A]);
-        D when D > 0 -> io:format("Solutions:       (-B - ~tsD) / 2A = ~p,
-                         (-B + ~tsD) / 2A = ~p~n",
-            ["√", (-1*B-my_sq(D))/A/2, "√", (-1*B+my_sq(D))/A/2]);
+        D when D > 0 -> io:format("Solutions:       (-B - sq(D)) / 2A = ~p,
+                         (-B + sq(D)) / 2A = ~p~n",
+            [(-1*B-my_sq(D))/A/2,(-1*B+my_sq(D))/A/2]);
         D ->  io:format("What a fuck?")
     end;
 solve_equation(_) ->
