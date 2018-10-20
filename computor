@@ -1,7 +1,7 @@
 #! /usr/bin/env escript
 
 main([Arg]) ->
-    computer:main(list_to_binary(Arg));
+    computor:main(Arg);
 
 main(_) ->
     io:format("usage:   .\/computor \"the equation\"~n").

@@ -1,12 +1,16 @@
-%%%-------------------------------------------------------------------
-%%% @author ggrybova
-%%% @copyright (C) 2018, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 12. Sep 2018 17:44
-%%%-------------------------------------------------------------------
--module(computer).
+% **************************************************************************** #
+%                                                                              #
+%                                                         :::      ::::::::    #
+%    computor.erl                                       :+:      :+:    :+:    #
+%                                                     +:+ +:+         +:+      #
+%    By: ggrybova <marvin@42.fr>                    +#+  +:+       +#+         #
+%                                                 +#+#+#+#+#+   +#+            #
+%    Created: 2018/10/06 20:23:04 by ggrybova          #+#    #+#              #
+%    Updated: 2018/10/06 20:23:59 by ggrybova         ###   ########.fr        #
+%                                                                              #
+% **************************************************************************** #
+
+-module(computor).
 -author("ggrybova").
 
 %%====================================================================
@@ -16,23 +20,36 @@
     main/1
 ]).
 
-main(Arg) ->
-%%    io:format("!!!!~n"),
-    Map = get_equation(Arg),
-    Degree = maps:get(degree, Map),
-    if
-        Degree > 2 ->
-            io:format("The polynomial degree is stricly greater than 2, I can't solve.~n");
-        true ->
-            io:format("Begin to solve:~n"),
-            io:format("STEP 1. Coefficients:    A = ~p, B = ~p, C = ~p~n",
-                [maps:get(a, Map), maps:get(b, Map), maps:get(c, Map)]),
-            solve_equation(Map)
+main(Arg0) ->
+    case arg_to_binary(Arg0) of
+    	error -> io:format("Error. Not valid input.~n");
+    	Arg ->
+		    case get_equation(Arg) of
+		        {error, _} -> io:format("Error. Not valid input.~n");
+		        Map ->
+		            Degree = maps:get(degree, Map),
+		            if
+		                Degree > 2 ->
+		                    io:format("The polynomial degree is stricly greater than 2, I can't solve.~n");
+		                true ->
+		                    io:format("Begin to solve:~n"),
+		                    io:format("STEP 1. Coefficients:    A = ~p, B = ~p, C = ~p~n",
+		                        [maps:get(a, Map), maps:get(b, Map), maps:get(c, Map)]),
+		                    solve_equation(Map)
+		            end
+		    end
     end.
+
+
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
+
+arg_to_binary(Arg) ->
+	try list_to_binary(Arg)
+	catch _:_ -> error
+	end.
 
 get_equation(Arg) ->
     Arg1 = binary:replace(Arg, [<<" ">>], <<"">>, [global]),
@@ -41,8 +58,7 @@ get_equation(Arg) ->
             MonomialsL = split(Left, [<<"*">>], []),
             MonomialsR = split(Right, [<<"*">>], []),
             fill_map(MonomialsL, MonomialsR, []);
-        E -> io:format("Error. Program exit. Reason: ~p~n", [E]),
-            #{}
+        E -> {error, E}
     end.
 
 solve_equation(#{degree := -1}) ->
